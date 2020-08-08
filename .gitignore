@@ -1,0 +1,16 @@
+build/
+*/Release*
+*/Debug*
+*.lib
+*.exe
+*.dll
+*.o
+*.obj
+*.DS_Store
+*.swp
+*~
+.vscode/
+.ccls-cache/
+src/.ccls-cache/
+*.ccls
+*compile_commands.json
