@@ -55,7 +55,7 @@ std::string BasePath(const std::string &filename) {
 static std::string RelativePathRelative(const std::string &base,
                                         const std::string &filename) {
     auto base_path = BasePath(base);
-    std::string rel =  std::filesystem::relative(filename, BasePath(base));
+    auto rel =  std::filesystem::relative(filename, BasePath(base)).u8string();
     return rel;
 }
 
@@ -82,7 +82,7 @@ bool LoadProject(SDL_Renderer *device,
     std::string data(buffer, size);
     std::stringstream lines(data);
     std::string line;
-    std::string base = std::filesystem::absolute(BasePath(filename));
+    auto base = std::filesystem::absolute(BasePath(filename)).u8string();
     assert(project != nullptr);
     project->clear();
 

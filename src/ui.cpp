@@ -57,6 +57,8 @@ SDL_Renderer *MakeDefaultRenderer(SDL_Window *window) {
     uint32_t flags = SDL_RENDERER_ACCELERATED
                    | SDL_RENDERER_PRESENTVSYNC
                    | SDL_RENDERER_TARGETTEXTURE;
+
+	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
     SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
     return SDL_CreateRenderer(window, 0, flags);
 }
@@ -438,8 +440,8 @@ void RenderUi(SDL_Renderer *device, Project *project) {
     SDL_Rect dst{int(ox), int(oy),
                  int(atlas->width * scale),
                  int(atlas->height * scale)};
-    DrawBackground(device, dst);
 
+	DrawBackground(device, dst);
     SDL_Rect border = {dst.x - 1, dst.y - 1, dst.w + 2, dst.h + 2};
     SDL_SetRenderDrawColor(device, 0, 0, 0, 255);
     SDL_RenderDrawRect(device, &border);
@@ -490,7 +492,7 @@ void ProcessEvent(SDL_Renderer *device, Project *project, const SDL_Event &e) {
         break;
     case SDL_MOUSEBUTTONDOWN:
         if (e.button.button == 3 || e.button.button == 2) {
-            atlas->origin.x = e.button.x - atlas->position.y;
+            atlas->origin.x = e.button.x - atlas->position.x;
             atlas->origin.y = e.button.y - atlas->position.y;
         }
         break;
@@ -533,11 +535,16 @@ void MainLoop(SDL_Renderer *device, Project *project) {
         io.MouseDown[0] = button & SDL_BUTTON(SDL_BUTTON_LEFT);
         io.MouseDown[1] = button & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
+		SDL_SetRenderTarget(device, nullptr);
         SDL_SetRenderDrawColor(device, 0x7c, 0x90, 0x9f, 0xff);
         SDL_RenderClear(device);
-
-        ImGui::NewFrame();
-        RenderUi(device, project);
+#ifdef WIN32
+		// Screen doesn't clear properly with Direct3D for some reason.
+		// Might be because of the ImGUI SDL layer.
+		SDL_RenderFillRect(device, nullptr);
+#endif
+		ImGui::NewFrame();
+		RenderUi(device, project);
         ImGui::Render();
         ImGuiSDL::Render(ImGui::GetDrawData());
         SDL_RenderPresent(device);

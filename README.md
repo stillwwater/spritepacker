@@ -48,5 +48,5 @@ On Windows cmake will generate a visual C++ solution.
 You can export multiple atlases at once by providing a `.spritepack` project file with the `--export` argument. This can be used to generate atlases automatically when building your game.
 
 ```
-spritepacker --export untitled.spritepack
+spritepacker -export untitled.spritepack
 ```
