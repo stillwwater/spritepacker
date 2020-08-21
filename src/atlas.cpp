@@ -210,10 +210,12 @@ bool Atlas::Export(AtlasExporter fn) {
     quads.reserve(render_sprites.size());
 
     for (const auto &sprite : render_sprites) {
-        SDL_FRect quad{float(sprite.dst.x), float(sprite.dst.y),
-                       float(sprite.dst.w), float(sprite.dst.h)};
+        SDL_FRect quad{float(sprite.dst.x + padding),
+                       float(sprite.dst.y + padding),
+                       float(sprite.dst.w - padding * 2.0f),
+                       float(sprite.dst.h - padding * 2.0f)};
         if (y_up) {
-            quad.y = (height - 1) - quad.y;
+            quad.y = height - quad.y - quad.h;
         }
         if (normalize) {
             quad.x /= width;

@@ -535,15 +535,15 @@ void MainLoop(SDL_Renderer *device, Project *project) {
         io.MouseDown[0] = button & SDL_BUTTON(SDL_BUTTON_LEFT);
         io.MouseDown[1] = button & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
-		SDL_SetRenderTarget(device, nullptr);
+        SDL_SetRenderTarget(device, nullptr);
         SDL_SetRenderDrawColor(device, 0x7c, 0x90, 0x9f, 0xff);
         SDL_RenderClear(device);
 #ifdef WIN32
-		// Screen doesn't clear properly with Direct3D for some reason.
-		// Might be because of the ImGUI SDL layer.
-		SDL_RenderFillRect(device, nullptr);
+        // Screen doesn't clear properly with Direct3D for some reason.
+        // Might be because of the ImGUI SDL layer.
+        SDL_RenderFillRect(device, nullptr);
 #endif
-		ImGui::NewFrame();
+        ImGui::NewFrame();
 		RenderUi(device, project);
         ImGui::Render();
         ImGuiSDL::Render(ImGui::GetDrawData());
