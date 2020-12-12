@@ -34,6 +34,11 @@ struct Sprite {
     SDL_Texture *texture;
 };
 
+struct Animation {
+    std::string name;
+    std::vector<int> frames;
+};
+
 struct RenderSprite {
     SDL_Rect src;
     SDL_Rect dst;

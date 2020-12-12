@@ -34,6 +34,7 @@ void InitInput(ImGuiIO *io);
 
 void RenderUi(SDL_Renderer *deice, Project *project);
 void ProcessEvent(SDL_Renderer *device, Project *project, const SDL_Event &e);
+
 void MainLoop(SDL_Renderer *device, Project *project);
 
 } // namespace spack

@@ -83,6 +83,7 @@ bool LoadProject(SDL_Renderer *device,
     std::stringstream lines(data);
     std::string line;
     auto base = std::filesystem::absolute(BasePath(filename)).u8string();
+    int selected_anim = -1;
     assert(project != nullptr);
     project->clear();
 
@@ -92,9 +93,7 @@ bool LoadProject(SDL_Renderer *device,
 
         auto sep = line.find(' ');
         if (sep == std::string::npos) {
-            fclose(file);
-            delete[] buffer;
-            return false;
+            break;
         }
         auto key = line.substr(0, sep);
         auto value = line.substr(sep + 1);
@@ -102,27 +101,43 @@ bool LoadProject(SDL_Renderer *device,
         if (key == "atlas") {
             project->push_back(std::make_unique<Atlas>(device));
             project->back()->output_file = value;
+            selected_anim = -1;
             continue;
         }
+
         if (project->size() == 0) {
             fclose(file);
             delete[] buffer;
             return false;
         }
+        auto &atlas = *project->back();
+
         if (key == "image") {
-            project->back()->output_image = value;
+            atlas.output_image = value;
             continue;
         }
+
+        if (key == "anim") {
+            Animation anim{};
+            anim.name = value;
+            atlas.animations.push_back(anim);
+            selected_anim++;
+        }
+
         if (key == "sprite") {
-            project->back()->AppendSprite(base + value);
+            if (selected_anim < 0) {
+                selected_anim = 0;
+            }
+            atlas.AppendSprite(base + value, selected_anim);
             continue;
         }
-        ParseInt(&project->back()->padding_mode, "padding_mode", key, value);
-        ParseInt(&project->back()->padding, "padding", key, value);
-        ParseInt(&project->back()->normalize, "normalize", key, value);
-        ParseInt(&project->back()->y_up, "y_up", key, value);
-        ParseInt(&project->back()->square_texture, "square", key, value);
-        ParseInt(&project->back()->image_format, "image_format", key, value);
+
+        ParseInt(&atlas.padding_mode, "padding_mode", key, value);
+        ParseInt(&atlas.padding, "padding", key, value);
+        ParseInt(&atlas.normalize, "normalize", key, value);
+        ParseInt(&atlas.y_up, "y_up", key, value);
+        ParseInt(&atlas.square_texture, "square", key, value);
+        ParseInt(&atlas.image_format, "image_format", key, value);
     }
     delete[] buffer;
     fclose(file);
@@ -147,9 +162,16 @@ bool SaveProject(const std::string &filename,
         fprintf(file, "padding_mode %d\n", atlas->padding_mode);
         fprintf(file, "normalize %d\n", atlas->normalize);
         fprintf(file, "y_up %d\n", atlas->y_up);
-        for (const auto &sprite : atlas->sprites) {
-            fprintf(file, "sprite %s\n",
-                    RelativePathRelative(filename, sprite.filename).c_str());
+
+        for (const auto &anim : atlas->animations) {
+            fprintf(file, "anim %s\n", anim.name.c_str());
+
+            for (int frame : anim.frames) {
+                auto &sprite = atlas->sprites[frame];
+
+                fprintf(file, "sprite %s\n",
+                        RelativePathRelative(filename, sprite.filename).c_str());
+            }
         }
     }
     fclose(file);
@@ -160,7 +182,7 @@ bool ExportAtlasFile(const Atlas &atlas, const std::vector<SDL_FRect> &quads) {
     auto *file = fopen(atlas.output_file.c_str(), "w+");
     if (file == nullptr) return false;
 
-    fprintf(file, "i %s\n", atlas.output_image.c_str());
+    fprintf(file, "i %s %d\n", atlas.output_image.c_str(), int(atlas.sprites.size()));
 
     for (size_t i = 0; i < quads.size(); ++i) {
         auto &sprite = atlas.sprites[i];
@@ -173,6 +195,20 @@ bool ExportAtlasFile(const Atlas &atlas, const std::vector<SDL_FRect> &quads) {
         }
         fprintf(file, " %d %d %d %d\n",
                 int(quad.x), int(quad.y), int(quad.w), int(quad.h));
+    }
+
+    // First animation group is skipped because it's the default group
+    for (size_t i = 1; i < atlas.animations.size(); ++i) {
+        const auto &anim = atlas.animations[i];
+        fprintf(file, "a %s %d\n", anim.name.c_str(), int(anim.frames.size()));
+    }
+
+    for (size_t i = 1; i < atlas.animations.size(); ++i) {
+        const auto &anim = atlas.animations[i];
+        // Associate a sprite with an animation frame
+        for (size_t j = 0; j < anim.frames.size(); ++j) {
+            fprintf(file, "f %s %d %d\n", anim.name.c_str(), int(j), anim.frames[j]);
+        }
     }
     fclose(file);
     return true;
@@ -194,7 +230,21 @@ bool ExportJson(const Atlas &atlas, const std::vector<SDL_FRect> &quads) {
         fprintf(file, "\"x\":%f,\"y\":%f,\"w\":%f,\"h\":%f}",
                 quad.x, quad.y, quad.w, quad.h);
     }
-    fprintf(file, "]}\n");
+    fprintf(file, "],\"animations\":{");
+
+    for (size_t i = 1; i < atlas.animations.size(); ++i) {
+        const auto &anim = atlas.animations[i];
+        if (i > 1) fprintf(file, ",");
+        fprintf(file, "\"%s\":[", anim.name.c_str());
+
+        for (size_t j = 0; j < anim.frames.size(); ++j) {
+            if (j > 0) fprintf(file, ",");
+            fprintf(file, "%d", anim.frames[j]);
+        }
+        fprintf(file, "]");
+    }
+    fprintf(file, "}\n");
+
     fclose(file);
     return true;
 }

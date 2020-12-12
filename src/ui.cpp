@@ -161,44 +161,98 @@ static void DrawMessageDialog(const char *name,
     }
 }
 
-static void DrawSpritesWindow(const Project &project) {
-    static size_t selected = 0;
+static size_t selected_anim = 0;
+static size_t selected_sprite = 0;
+
+static void DrawAnimationsWindow(const Project &project) {
     auto &atlas = project.GetAtlas();
+
+    ImGui::SetNextWindowBgAlpha(0.9f);
+    ImGui::Begin("Animation Groups", nullptr, ImGuiWindowFlags_NoResize);
+    size_t new_selected = selected_anim;
+
+    if (ImGui::Button("New")) {
+        Animation anim{};
+        anim.name = "untitled_anim";
+        atlas->animations.push_back(anim);
+        ++new_selected;
+    }
+
+    for (size_t i = 0; i < atlas->animations.size(); ++i) {
+        auto &anim = atlas->animations[i];
+        auto label = UniqueLabel(anim.name, i);
+
+        if (ImGui::Selectable(label.c_str(), i == new_selected))
+            new_selected = i;
+    }
+
+    if (new_selected != selected_anim) {
+        selected_anim = new_selected;
+        selected_sprite = 0;
+    }
+
+    ImGui::End();
+}
+
+static void DrawSpritesWindow(const Project &project) {
+    auto &atlas = project.GetAtlas();
+    auto &sprites = atlas->animations[selected_anim].frames;
 
     ImGui::SetNextWindowBgAlpha(0.9f);
     ImGui::Begin("Sprites", nullptr, ImGuiWindowFlags_NoResize);
 
-    if (ImGui::Button("Up") && selected > 0 && atlas->sprites.size() > 0) {
-        std::swap(atlas->sprites[selected], atlas->sprites[selected - 1]);
-        --selected;
+    if (ImGui::Button("Up") && selected_sprite > 0 && sprites.size() > 0) {
+        std::swap(sprites[selected_sprite], sprites[selected_sprite - 1]);
+        --selected_sprite;
     }
     ImGui::SameLine();
 
-    if (ImGui::Button("Down") && selected < atlas->sprites.size()-1
-            && atlas->sprites.size() > 0) {
-        std::swap(atlas->sprites[selected], atlas->sprites[selected + 1]);
-        ++selected;
+    if (ImGui::Button("Down") && selected_sprite < sprites.size() - 1
+            && sprites.size() > 0) {
+        std::swap(sprites[selected_sprite], sprites[selected_sprite + 1]);
+        ++selected_sprite;
     }
     ImGui::SameLine();
 
-    if (ImGui::Button("Delete") && selected < atlas->sprites.size()
-            && atlas->sprites.size() > 0) {
-        auto &sprite = atlas->sprites[selected];
+    if (ImGui::Button("Remove") && selected_sprite < sprites.size()
+            && sprites.size() > 0) {
+        int removed_frame = sprites[selected_sprite];
+        auto &sprite = atlas->sprites[removed_frame];
+
         SDL_DestroyTexture(sprite.texture);
 
-        atlas->sprites.erase(atlas->sprites.begin() + selected);
+        sprites.erase(sprites.begin() + selected_sprite);
+        atlas->sprites.erase(atlas->sprites.begin() + removed_frame);
         atlas->RenderSprites();
         atlas->Render();
-        if (selected > 0) --selected;
+
+        for (auto &anim : atlas->animations) {
+            for (int &frame : anim.frames) {
+                if (frame >= removed_frame)
+                    --frame;
+            }
+        }
+
+        if (selected_sprite > 0) --selected_sprite;
     }
 
-    for (size_t i = 0; i < atlas->sprites.size(); ++i) {
-        const auto &sprite = atlas->sprites[i];
+    if (selected_anim > 0) {
+        ImGui::InputText("Name", &atlas->animations[selected_anim].name);
+    }
+
+    for (size_t i = 0; i < sprites.size(); ++i) {
+        int frame = sprites[i];
+        const auto &sprite = atlas->sprites[frame];
         auto label = UniqueLabel(sprite.short_name, i);
+
         ImGui::Image(sprite.texture, ImVec2(20, 20));
         ImGui::SameLine();
-        if (ImGui::Selectable(label.c_str(), i == selected))
-            selected = i;
+
+        ImGui::Text("%03d ", int(i));
+        ImGui::SameLine();
+
+        if (ImGui::Selectable(label.c_str(), i == selected_sprite))
+            selected_sprite = i;
     }
     ImGui::End();
 }
@@ -419,7 +473,11 @@ void RenderUi(SDL_Renderer *device, Project *project) {
     DrawProjectWindow(device, project);
 
     ImGui::SetNextWindowPos(ImVec2(20, 20));
-    ImGui::SetNextWindowSize(ImVec2(300, io.DisplaySize.y - 40));
+    ImGui::SetNextWindowSize(ImVec2(300, 300));
+    DrawAnimationsWindow(*project);
+
+    ImGui::SetNextWindowPos(ImVec2(20, 340));
+    ImGui::SetNextWindowSize(ImVec2(300, (io.DisplaySize.y - 300) - 60));
     DrawSpritesWindow(*project);
 
     DrawErrrorDialogs(project);
@@ -466,7 +524,7 @@ void ProcessEvent(SDL_Renderer *device, Project *project, const SDL_Event &e) {
             SDL_free(e.drop.file);
             break;
         }
-        if (atlas->AppendSprite(e.drop.file))
+        if (atlas->AppendSprite(e.drop.file, selected_anim))
             atlas->Render();
         else
             project->Error(Error_InvalidImage, e.drop.file);
@@ -544,7 +602,7 @@ void MainLoop(SDL_Renderer *device, Project *project) {
         SDL_RenderFillRect(device, nullptr);
 #endif
         ImGui::NewFrame();
-		RenderUi(device, project);
+        RenderUi(device, project);
         ImGui::Render();
         ImGuiSDL::Render(ImGui::GetDrawData());
         SDL_RenderPresent(device);

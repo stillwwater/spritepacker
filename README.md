@@ -8,24 +8,35 @@ A simple texture packer for combining sprites into a single texture.
 
 A simple white space separated text format with single character tags (similar to [Wavefront .obj](https://en.wikipedia.org/wiki/Wavefront_.obj_file)). A json format is also available.
 
-- A `#` Introduces a comment. There are no inline comments.
-- A single `i` followed by a file path relative to the text file gives the image texture the file describes.
+- A `#` introduces a comment. There are no inline comments.
+- An `i` tag followed by a file path relative to the text file gives the image texture the file describes.
 - An `s` tag is followed by the name of the sprite, the x and y coordinates of the sprite in the atlas, and a width and height. Depending on export options the x, y coordinates may also be normalized to be between [0.0, 1.0) or have the Y axis flipped. Sprites in the file are in the same order as they appear in the ‘Sprites’ panel.
+- An `a` tag defines an animation with a name and number of frames
+- A `f` tag followed by the parent animation name, followed by the frame index and sprite index defines an animation frame. The sprite index corresponds to the order in which sprites are defined in the file.
 
 `.atlas (normalized)`
 
 ```
-i texture.tga
+# texture      number of sprites
+i texture.tga  2
 
 # tag     x        y        width      height
 s tile000 0.250000 0.374512 128.000000 128.000000
 s tile001 0.125000 0.374512 128.000000 128.000000
+
+# animation    number of frames
+a idle         2
+
+# parent  frame  sprite index
+f idle    0      0
+f idle    1      1
+
 ```
 
 `.atlas (pixel coordinates)`
 
 ```
-i texture.tga
+i texture.tga 2
 
 # tag     x   y    w   h
 s tile000 256 1280 128 128

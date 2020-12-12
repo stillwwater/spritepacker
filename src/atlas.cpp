@@ -180,18 +180,26 @@ void Atlas::RenderSprites() {
     }
 }
 
-void Atlas::AppendSprite(const Sprite &sprite) {
+void Atlas::AppendSprite(const Sprite &sprite, int anim) {
+    if (animations.size() == 0) {
+        Animation none{};
+        none.name = "<none>";
+        animations.push_back(std::move(none));
+    }
+    assert(anim >= 0 && anim < animations.size());
+
     auto rs = MakeRenderSprite(device, sprite, padding, padding_mode);
     rs.sorting_order = sprites.size();
+    animations[anim].frames.push_back(sprites.size());
     sprites.push_back(sprite);
     render_sprites.push_back(std::move(rs));
 }
 
-bool Atlas::AppendSprite(const std::string &filename) {
+bool Atlas::AppendSprite(const std::string &filename, int anim) {
     auto sprite = LoadSprite(device, filename);
     if (!sprite.has_value())
         return false;
-    AppendSprite(sprite.value());
+    AppendSprite(sprite.value(), anim);
     return true;
 }
 

@@ -34,6 +34,7 @@ class Atlas {
 public:
     int width, height;
     std::vector<Sprite> sprites;
+    std::vector<Animation> animations;
     SDL_Texture *texture = nullptr;
 
     std::string output_file = "untitled.atlas";
@@ -70,8 +71,8 @@ public:
     Atlas(const Atlas &) = delete;
     Atlas &operator=(const Atlas &) = delete;
 
-    bool AppendSprite(const std::string &filename);
-    void AppendSprite(const Sprite &sprite);
+    bool AppendSprite(const std::string &filename, int anim = 0);
+    void AppendSprite(const Sprite &sprite, int anim = 0);
 
     void RenderSprites();
 

@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     else if (argc > 1)
         error = UiMain(device, argv[1]);
     else
-        error = UiMain(device);
+        error = UiMain(device, "my.spritepack");
 
     SDL_DestroyRenderer(device);
     SDL_DestroyWindow(window);
