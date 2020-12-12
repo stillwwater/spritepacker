@@ -113,7 +113,7 @@ SDL_Point Atlas::Pack(int heur, int n) {
 
     auto size = PackedSize(heur, n);
     auto *mask = new unsigned char[size.x * size.y];
-    memset(mask, 0, size.x * size.y * sizeof(bool));
+    memset(mask, 0, size.x * size.y);
 
     for (auto &sprite : render_sprites) {
         int ox = 0;
@@ -181,11 +181,7 @@ void Atlas::RenderSprites() {
 }
 
 void Atlas::AppendSprite(const Sprite &sprite, int anim) {
-    if (animations.size() == 0) {
-        Animation none{};
-        none.name = "<none>";
-        animations.push_back(std::move(none));
-    }
+    assert(animations.size() > 0);
     assert(anim >= 0 && anim < animations.size());
 
     auto rs = MakeRenderSprite(device, sprite, padding, padding_mode);

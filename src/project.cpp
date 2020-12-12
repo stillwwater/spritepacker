@@ -72,6 +72,10 @@ bool Project::ExportAllAtlases() const {
 std::unique_ptr<Atlas> Project::MakeEmptyAtlas(SDL_Renderer *device) const {
     auto atlas = std::make_unique<Atlas>(device);
     atlas->CreateTexture(128, 128);
+
+    Animation none{};
+    none.name = "<none>";
+    atlas->animations.push_back(std::move(none));
     return atlas;
 }
 

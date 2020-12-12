@@ -28,7 +28,7 @@
 
 int UiMain(SDL_Renderer *device, const char *filename = nullptr) {
     ImGui::CreateContext();
-    ImGui::StyleColorsLight();
+    ImGui::StyleColorsDark();
     ImGuiSDL::Initialize(device, spack::DefaultWindowW, spack::DefaultWindowH);
 
     auto &io = ImGui::GetIO();
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     else if (argc > 1)
         error = UiMain(device, argv[1]);
     else
-        error = UiMain(device, "my.spritepack");
+        error = UiMain(device);
 
     SDL_DestroyRenderer(device);
     SDL_DestroyWindow(window);
