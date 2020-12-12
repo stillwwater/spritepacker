@@ -177,6 +177,20 @@ static void DrawAnimationsWindow(const Project &project) {
         atlas->animations.push_back(anim);
         ++new_selected;
     }
+    ImGui::SameLine();
+
+    // Cannot remove the default animation group
+    if (ImGui::Button("Remove") && new_selected < atlas->animations.size()
+            && new_selected > 0) {
+        for (int frame : atlas->animations[new_selected].frames) {
+            auto &sprite = atlas->sprites[frame];
+
+            SDL_DestroyTexture(sprite.texture);
+            atlas->sprites.erase(atlas->sprites.begin() + frame);
+        }
+        atlas->animations.erase(atlas->animations.begin() + new_selected);
+        --new_selected;
+    }
 
     for (size_t i = 0; i < atlas->animations.size(); ++i) {
         auto &anim = atlas->animations[i];
