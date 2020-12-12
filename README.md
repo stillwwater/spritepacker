@@ -1,8 +1,10 @@
 # SpritePacker
 
-A simple texture packer for combining sprites into a single texture.
+A simple texture packer for combining sprites and animations into a single texture.
 
 ![scrot](./scrot.png)
+
+[sprite pack source](https://o-lobster.itch.io/simple-dungeon-crawler-16x16-pixel-pack)
 
 ## File Format
 
@@ -30,7 +32,6 @@ a idle         2
 # parent  frame  sprite index
 f idle    0      0
 f idle    1      1
-
 ```
 
 `.atlas (pixel coordinates)`
@@ -56,7 +57,7 @@ On Windows cmake will generate a visual C++ solution.
 
 ## Command Line Usage
 
-You can export multiple atlases at once by providing a `.spritepack` project file with the `--export` argument. This can be used to generate atlases automatically when building your game.
+You can export multiple atlases at once by providing a `.spritepack` project file with the `-export` argument. This can be used to generate atlases automatically when building your game.
 
 ```
 spritepacker -export untitled.spritepack
