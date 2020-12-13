@@ -48,6 +48,9 @@ public:
     SDL_Point origin{0, 0};
     float scale = 1.0f;
 
+    size_t selected_anim = 0;
+    size_t selected_sprite = 0;
+
     // Padding in pixels in between each sprite
     int padding = 0;
     PaddingMode padding_mode = Padding_Bleed;
@@ -74,6 +77,7 @@ public:
     bool AppendSprite(const std::string &filename, int anim = 0);
     void AppendSprite(const Sprite &sprite, int anim = 0);
 
+    void SortRenderSprites();
     void RenderSprites();
 
     SDL_Point PackedSize(int heur = 0, int n = 0) const;

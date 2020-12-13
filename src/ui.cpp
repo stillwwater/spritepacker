@@ -42,6 +42,8 @@ constexpr char Help_YUp[] =
     "Use 'OpenGL style' coordinates with (0, 0) at the bottom left corner,"
     " default is (0, 0) at the top left.";
 
+constexpr char Help_FrameTime[] = "Duration of each frame in seconds.";
+
 #ifdef __APPLE__
 constexpr char Help_Save[] = "Save (Command + S)";
 constexpr char Help_Export[] = "Export (Command + E)";
@@ -115,6 +117,7 @@ static void Section(const char *text) {
 static void DrawTooltip(const char *text) {
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
+
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -161,19 +164,20 @@ static void DrawMessageDialog(const char *name,
     }
 }
 
-static size_t selected_anim = 0;
-static size_t selected_sprite = 0;
-
 static void DrawAnimationsWindow(const Project &project) {
     auto &atlas = project.GetAtlas();
 
     ImGui::SetNextWindowBgAlpha(0.9f);
     ImGui::Begin("Animation Groups", nullptr, ImGuiWindowFlags_NoResize);
-    size_t new_selected = selected_anim;
+    size_t new_selected = atlas->selected_anim;
 
-    if (ImGui::Button("New")) {
+    if (ImGui::Button("New Animation")) {
         Animation anim{};
         anim.name = "untitled_anim";
+
+        if (atlas->animations.size() > 0) {
+            anim.frame_time = atlas->animations.back().frame_time;
+        }
         atlas->animations.push_back(anim);
         ++new_selected;
     }
@@ -200,9 +204,9 @@ static void DrawAnimationsWindow(const Project &project) {
             new_selected = i;
     }
 
-    if (new_selected != selected_anim) {
-        selected_anim = new_selected;
-        selected_sprite = 0;
+    if (new_selected != atlas->selected_anim) {
+        atlas->selected_anim = new_selected;
+        atlas->selected_sprite = 0;
     }
 
     ImGui::End();
@@ -210,35 +214,35 @@ static void DrawAnimationsWindow(const Project &project) {
 
 static void DrawSpritesWindow(const Project &project) {
     auto &atlas = project.GetAtlas();
-    auto &sprites = atlas->animations[selected_anim].frames;
+    auto &sprites = atlas->animations[atlas->selected_anim].frames;
 
     ImGui::SetNextWindowBgAlpha(0.9f);
     ImGui::Begin("Sprites", nullptr, ImGuiWindowFlags_NoResize);
 
-    if (ImGui::Button("Up") && selected_sprite > 0 && sprites.size() > 0) {
-        std::swap(sprites[selected_sprite], sprites[selected_sprite - 1]);
-        --selected_sprite;
+    if (ImGui::Button("Up") && atlas->selected_sprite > 0 && sprites.size() > 0) {
+        std::swap(sprites[atlas->selected_sprite],
+                  sprites[atlas->selected_sprite - 1]);
+        --atlas->selected_sprite;
     }
     ImGui::SameLine();
 
-    if (ImGui::Button("Down") && selected_sprite < sprites.size() - 1
+    if (ImGui::Button("Down") && atlas->selected_sprite < sprites.size() - 1
             && sprites.size() > 0) {
-        std::swap(sprites[selected_sprite], sprites[selected_sprite + 1]);
-        ++selected_sprite;
+        std::swap(sprites[atlas->selected_sprite],
+                  sprites[atlas->selected_sprite + 1]);
+        ++atlas->selected_sprite;
     }
     ImGui::SameLine();
 
-    if (ImGui::Button("Remove") && selected_sprite < sprites.size()
+    if (ImGui::Button("Remove") && atlas->selected_sprite < sprites.size()
             && sprites.size() > 0) {
-        int removed_frame = sprites[selected_sprite];
+        int removed_frame = sprites[atlas->selected_sprite];
         auto &sprite = atlas->sprites[removed_frame];
 
         SDL_DestroyTexture(sprite.texture);
 
-        sprites.erase(sprites.begin() + selected_sprite);
+        sprites.erase(sprites.begin() + atlas->selected_sprite);
         atlas->sprites.erase(atlas->sprites.begin() + removed_frame);
-        atlas->RenderSprites();
-        atlas->Render();
 
         for (auto &anim : atlas->animations) {
             for (int &frame : anim.frames) {
@@ -246,12 +250,23 @@ static void DrawSpritesWindow(const Project &project) {
                     --frame;
             }
         }
+        atlas->RenderSprites();
+        atlas->Render();
 
-        if (selected_sprite > 0) --selected_sprite;
+        if (atlas->selected_sprite > 0) --atlas->selected_sprite;
     }
 
-    if (selected_anim > 0) {
-        ImGui::InputText("Name", &atlas->animations[selected_anim].name);
+    if (atlas->selected_anim > 0) {
+        auto &anim = atlas->animations[atlas->selected_anim];
+        ImGui::InputText("Name", &anim.name);
+        ImGui::SetNextItemWidth(100);
+        ImGui::InputFloat("Frame Time", &anim.frame_time, 0.0f, 0.0f, "%.3f");
+
+        if (anim.frame_time > 0.0f && anim.frame_time < 1.0f) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("(%dfps)", int(1.0f / anim.frame_time));
+        }
+        DrawTooltip(Help_FrameTime);
     }
 
     for (size_t i = 0; i < sprites.size(); ++i) {
@@ -265,8 +280,8 @@ static void DrawSpritesWindow(const Project &project) {
         ImGui::Text("%03d ", int(i));
         ImGui::SameLine();
 
-        if (ImGui::Selectable(label.c_str(), i == selected_sprite))
-            selected_sprite = i;
+        if (ImGui::Selectable(label.c_str(), i == atlas->selected_sprite))
+            atlas->selected_sprite = i;
     }
     ImGui::End();
 }
@@ -388,7 +403,7 @@ static void DrawProjectWindow(SDL_Renderer *device, Project *project) {
     DrawTooltip(Help_Save);
 
     Section("Atlases");
-    if (ImGui::Button("Add")) {
+    if (ImGui::Button("New Atlas")) {
         selected = project->atlases.size();
         project->AddAtlas(project->MakeEmptyAtlas(device));
         project->current_atlas = selected;
@@ -538,7 +553,7 @@ void ProcessEvent(SDL_Renderer *device, Project *project, const SDL_Event &e) {
             SDL_free(e.drop.file);
             break;
         }
-        if (atlas->AppendSprite(e.drop.file, selected_anim))
+        if (atlas->AppendSprite(e.drop.file, atlas->selected_anim))
             atlas->Render();
         else
             project->Error(Error_InvalidImage, e.drop.file);

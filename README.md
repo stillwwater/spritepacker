@@ -26,8 +26,8 @@ i texture.tga  2
 s tile000 0.250000 0.374512 128.000000 128.000000
 s tile001 0.125000 0.374512 128.000000 128.000000
 
-# animation    number of frames
-a idle         2
+# animation    frames   frame time
+a idle         2        0.066000
 
 # parent  frame  sprite index
 f idle    0      0

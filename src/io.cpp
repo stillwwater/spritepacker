@@ -72,6 +72,7 @@ bool LoadProject(SDL_Renderer *device,
                  std::vector<std::unique_ptr<Atlas>> *project) {
     auto *file = fopen(filename.c_str(), "r");
     if (file == nullptr) return false;
+
     fseek(file, 0, SEEK_END);
     auto size = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -82,8 +83,10 @@ bool LoadProject(SDL_Renderer *device,
     std::string data(buffer, size);
     std::stringstream lines(data);
     std::string line;
+
     auto base = std::filesystem::absolute(BasePath(filename)).u8string();
     int selected_anim = -1;
+
     assert(project != nullptr);
     project->clear();
 
@@ -122,6 +125,11 @@ bool LoadProject(SDL_Renderer *device,
             anim.name = value;
             atlas.animations.push_back(anim);
             selected_anim++;
+        }
+
+        if (key == "frame_time") {
+            assert(atlas.animations.size() > 0);
+            atlas.animations.back().frame_time = std::stof(value);
         }
 
         if (key == "sprite") {
@@ -165,6 +173,7 @@ bool SaveProject(const std::string &filename,
 
         for (const auto &anim : atlas->animations) {
             fprintf(file, "anim %s\n", anim.name.c_str());
+            fprintf(file, "frame_time %f\n", anim.frame_time);
 
             for (int frame : anim.frames) {
                 auto &sprite = atlas->sprites[frame];
@@ -200,7 +209,8 @@ bool ExportAtlasFile(const Atlas &atlas, const std::vector<SDL_FRect> &quads) {
     // First animation group is skipped because it's the default group
     for (size_t i = 1; i < atlas.animations.size(); ++i) {
         const auto &anim = atlas.animations[i];
-        fprintf(file, "a %s %d\n", anim.name.c_str(), int(anim.frames.size()));
+        fprintf(file, "a %s %d %f\n",
+                anim.name.c_str(), int(anim.frames.size()), anim.frame_time);
     }
 
     for (size_t i = 1; i < atlas.animations.size(); ++i) {

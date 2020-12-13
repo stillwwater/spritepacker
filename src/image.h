@@ -37,6 +37,7 @@ struct Sprite {
 struct Animation {
     std::string name;
     std::vector<int> frames;
+    float frame_time = 0.016f;
 };
 
 struct RenderSprite {
@@ -44,6 +45,7 @@ struct RenderSprite {
     SDL_Rect dst;
     SDL_Texture *texture;
     int sorting_order;
+    int animation_group;
 };
 
 enum PaddingMode {

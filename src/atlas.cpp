@@ -104,12 +104,35 @@ SDL_Point Atlas::PackedSize(int heur, int n) const {
     return SDL_Point{w, h};
 }
 
-SDL_Point Atlas::Pack(int heur, int n) {
-    assert(n < 512);
+void Atlas::SortRenderSprites() {
+    // Sprites need to be in order so we can index them by frame
     std::sort(render_sprites.begin(), render_sprites.end(),
         [](const RenderSprite &a, const RenderSprite &b) {
-            return a.src.w * a.src.h > b.src.w * b.src.h;
+            return a.sorting_order < b.sorting_order;
         });
+
+    for (size_t i = 0; i < animations.size(); ++i) {
+        for (int frame : animations[i].frames) {
+            render_sprites[frame].animation_group = i;
+        }
+    }
+
+    // Keep sprites from the same animation group together
+    std::sort(render_sprites.begin(), render_sprites.end(),
+        [](const RenderSprite &a, const RenderSprite &b) {
+            return a.animation_group < b.animation_group;
+        });
+
+    std::sort(render_sprites.begin(), render_sprites.end(),
+        [](const RenderSprite &a, const RenderSprite &b) {
+            bool can_sort = a.animation_group == b.animation_group;
+            return can_sort && a.src.w * a.src.h > b.src.w * b.src.h;
+        });
+}
+
+SDL_Point Atlas::Pack(int heur, int n) {
+    assert(n < 512);
+    SortRenderSprites();
 
     auto size = PackedSize(heur, n);
     auto *mask = new unsigned char[size.x * size.y];
